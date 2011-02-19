@@ -1,8 +1,14 @@
 name: PetitionPlugin
-main: com.bukkit.floyd.petition.PetitionPlugin
-version: 1.12
+main: com.floyd.bukkit.petition.PetitionPlugin
+version: 1.20
 website: http://minecraft.atc.no/plugins
 author: FloydATC
 description: >
              This plugin is used for players to log problems, requests and complaints.
-
+commands:
+  pe:
+    description: Create and manage help requests
+    usage: /<command> (use without parameters for detailed help)
+  petition:
+    description: Create and manage help requests
+    usage: /<command> (use without parameters for detailed help)

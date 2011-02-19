@@ -1,4 +1,4 @@
-package com.bukkit.floyd.petition;
+package com.floyd.bukkit.petition;
 
 import java.io.*;
 import java.util.*;

@@ -40,12 +40,12 @@ public class PetitionPlugin extends JavaPlugin {
 
 	public static final Logger logger = Logger.getLogger("Minecraft.PetitionPlugin");
     
-    public PetitionPlugin(PluginLoader pluginLoader, Server instance, PluginDescriptionFile desc, File folder, File plugin, ClassLoader cLoader) {
-        super(pluginLoader, instance, desc, folder, plugin, cLoader);
-        // TODO: Place any custom initialization code here
-
-        // NOTE: Event registration should be done in onEnable not here as all events are unregistered when a plugin is disabled
-    }
+//    public PetitionPlugin(PluginLoader pluginLoader, Server instance, PluginDescriptionFile desc, File folder, File plugin, ClassLoader cLoader) {
+//        super(pluginLoader, instance, desc, folder, plugin, cLoader);
+//        // TODO: Place any custom initialization code here
+//
+//        // NOTE: Event registration should be done in onEnable not here as all events are unregistered when a plugin is disabled
+//    }
 
     public void onDisable() {
         // TODO: Place any custom disable code here

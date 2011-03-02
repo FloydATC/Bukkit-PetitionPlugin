@@ -19,6 +19,7 @@ import org.bukkit.plugin.PluginManager;
 import java.util.logging.Logger;
 
 import com.nijikokun.bukkit.Permissions.Permissions;
+import java.util.UUID;
 
 /**
 * Petition plugin for Bukkit
@@ -26,6 +27,7 @@ import com.nijikokun.bukkit.Permissions.Permissions;
 * @author FloydATC
 */
 public class PetitionPlugin extends JavaPlugin {
+    private final PetitionPlayerListener playerListener = new PetitionPlayerListener(this);
 
     private final ConcurrentHashMap<Player, Boolean> debugees = new ConcurrentHashMap<Player, Boolean>();
     private final ConcurrentHashMap<Integer, String> semaphores = new ConcurrentHashMap<Integer, String>();
@@ -35,6 +37,7 @@ public class PetitionPlugin extends JavaPlugin {
     
     String baseDir = "plugins/PetitionPlugin";
     String archiveDir = "archive";
+    String mailDir = "mail";
     String ticketFile = "last_ticket_id.txt";
     String configFile = "settings.txt";
 
@@ -66,6 +69,7 @@ public class PetitionPlugin extends JavaPlugin {
     	
         // Register our events
         PluginManager pm = getServer().getPluginManager();
+        pm.registerEvent(Event.Type.PLAYER_JOIN, playerListener, Priority.Normal, this);
 
         // EXAMPLE: Custom code, here we just output some info so we can check all is well
         PluginDescriptionFile pdfFile = this.getDescription();
@@ -219,6 +223,7 @@ public class PetitionPlugin extends JavaPlugin {
 	        		}
 	        		// Notify
 	        		notifyNamedPlayer(petition.Owner(), "[Pe] §7Your " + settings.get("single").toLowerCase() + " §6#" + id + "§7 was updated: " + message );
+					notifyNamedPlayer(petition.Assignee(), "[Pe] §7" + settings.get("single") + " §6#" + id + "§7 has been updated by " + player.getName() + ".");
 	    			notifyModerators("[Pe] §7" + settings.get("single") + " §6#" + id + "§7 comment added by " + player.getName() + ".");
 	        		petition.Comment(player, message);
 					logger.info(player.getName() + " commented petition " + id + ". " + message);
@@ -257,6 +262,7 @@ public class PetitionPlugin extends JavaPlugin {
 	        		}
 	        		// Notify
 	        		notifyNamedPlayer(petition.Owner(), "[Pe] §7Your " + settings.get("single").toLowerCase() + " §6#" + id + "§7 was closed. " + message );
+					notifyNamedPlayer(petition.Assignee(), "[Pe] §7" + settings.get("single") + " §6#" + id + "§7 was closed by " + player.getName() + ".");
 	        		notifyModerators("[Pe] §7" + settings.get("single") + " §6#" + id + "§7 was closed. " + message );
 	        		petition.Close(player, message);
 					logger.info(player.getName() + " closed petition " + id + ". " + message);
@@ -291,6 +297,7 @@ public class PetitionPlugin extends JavaPlugin {
     			if (Boolean.parseBoolean(settings.get("notify-owner-on-unassign"))) {
     				notifyNamedPlayer(petition.Owner(), "[Pe] §7Your " + settings.get("single").toLowerCase() + " §6#" + id + "§7 has been unassigned.");
     			}
+				notifyNamedPlayer(petition.Assignee(), "[Pe] §7" + settings.get("single") + " §6#" + id + "§7 has been unassigned from you by " + player.getName() + ".");
 				notifyModerators("[Pe] §7" + settings.get("single") + " §6#" + id + "§7 unassigned by " + player.getName() + "." );
 				logger.info(player.getName() + " unassigned petition " + id);
     		} else {
@@ -326,6 +333,7 @@ public class PetitionPlugin extends JavaPlugin {
     			if (Boolean.parseBoolean(settings.get("notify-owner-on-assign"))) {
     				notifyNamedPlayer(petition.Owner(), "[Pe] §7Your " + settings.get("single").toLowerCase() + " §6#" + id + "§7 assigned to " + petition.Assignee() + ".");
     			}
+				notifyNamedPlayer(petition.Assignee(), "[Pe] §7" + settings.get("single") + " §6#" + id + "§7 has been assigned to you by " + player.getName() + ".");
 				notifyModerators("[Pe] §7" + settings.get("single") + " §6#" + id + "§7 has been assigned to " + petition.Assignee() + ".");
 				logger.info(player.getName() + " assigned petition " + id + " to " + petition.Assignee());
     		} else {
@@ -569,6 +577,14 @@ public class PetitionPlugin extends JavaPlugin {
     			logger.info( "[Pe] Created directory '" + fname + "'" );
     		}
     	}
+    	// Ensure that mailDir exists
+    	fname = baseDir + "/" + mailDir;
+    	f = new File(fname);
+    	if (!f.exists()) {
+    		if (f.mkdir()) {
+    			logger.info( "[Pe] Created directory '" + fname + "'" );
+    		}
+    	}
     	// Ensure that configFile exists
     	fname = baseDir + "/" + configFile;
     	f = new File(fname);
@@ -622,11 +638,63 @@ public class PetitionPlugin extends JavaPlugin {
     }
     
     private void notifyNamedPlayer(String name, String message) {
+    	// Ignore broken filenames -- should probably be improved
+    	if (name.equals("") || name.equals("*")) {
+    		return;
+    	}
     	Player[] players = getServer().getOnlinePlayers();
+    	Boolean online = false;
     	for (Player player: players) {
     		if (player.getName().equalsIgnoreCase(name)) {
     			player.sendMessage(message);
+    			online = true;
     		}
+    	}
+    	if (online == false) {
+    		name = name.toLowerCase();
+    		String fname;
+    		File f;
+        	// Ensure that player's mailDir exists
+        	fname = baseDir + "/" + mailDir + "/" + name;
+        	f = new File(fname);
+        	if (!f.exists()) {
+        		if (f.mkdir()) {
+        			logger.info( "[Pe] Created directory '" + fname + "'" );
+        		}
+        	}
+        	// Ensure that player's mailDir tmp exists
+        	fname = baseDir + "/" + mailDir + "/" + name + "/tmp";
+        	f = new File(fname);
+        	if (!f.exists()) {
+        		if (f.mkdir()) {
+        			logger.info( "[Pe] Created directory '" + fname + "'" );
+        		}
+        	}
+        	// Ensure that player's mailDir inbox exists
+        	fname = baseDir + "/" + mailDir + "/" + name + "/inbox";
+        	f = new File(fname);
+        	if (!f.exists()) {
+        		if (f.mkdir()) {
+        			logger.info( "[Pe] Created directory '" + fname + "'" );
+        		}
+        	}
+    		// Create a unique file in tmp
+        	UUID uuid = UUID.randomUUID();
+        	fname = baseDir + "/" + mailDir + "/" + name + "/tmp/" + uuid;
+        	String fname_final = baseDir + "/" + mailDir + "/" + name + "/inbox/" + uuid;
+			BufferedWriter output;
+			String newline = System.getProperty("line.separator");
+			try {
+				output = new BufferedWriter(new FileWriter(fname));
+				output.write(message + newline);
+				output.close();
+				// Move the file into player's inbox
+				f = new File(fname);
+				f.renameTo(new File(fname_final));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+        	
     	}
     }
     
@@ -639,6 +707,35 @@ public class PetitionPlugin extends JavaPlugin {
     	}
     }
     
-
+    public String[] getMessages(Player player) {
+    	String[] messages = null;
+    	String name = player.getName().toLowerCase();
+    	String pname = baseDir + "/" + mailDir + "/" + name + "/inbox";
+		File dir = new File(pname);
+		String[] filenames = dir.list();
+    	if (filenames != null) {
+    		messages = new String[filenames.length];
+    		Integer index = 0;
+    		for (String fname : filenames) {
+    			try {
+    	    		BufferedReader input =  new BufferedReader(new FileReader(pname + "/" + fname));
+    	    		messages[index] = input.readLine();
+    	    		input.close();
+    	    		boolean success = (new File(pname + "/" + fname)).delete();
+    	    		if (success == false) {
+    	    			logger.warning("[Pe] Could not delete " + pname + "/" + fname);
+    	    		}
+    	    	}
+    	    	catch (FileNotFoundException e) {
+    				logger.warning( "[Pe] Unexpected error reading " + e.getLocalizedMessage());
+    	    	}
+    	    	catch (Exception e) {
+    	    		e.printStackTrace();
+    	    	}
+    			index++;
+    		}
+    	}
+    	return messages;
+    }
 }
 

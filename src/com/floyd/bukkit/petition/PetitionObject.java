@@ -15,7 +15,7 @@ public class PetitionObject {
 	Integer id = 0;
 	String owner = "";
 	String title = "";
-	String world = "world";
+	String world = "";
 	Double x = 0d;
 	Double y = 0d;
 	Double z = 0d;
@@ -26,15 +26,27 @@ public class PetitionObject {
 		
 	// Create a new petition
 	public PetitionObject( Integer newid, Player player, String newtitle ) {
-		id = newid;
-		owner = player.getName();
-		title = newtitle;
-		world = player.getLocation().getWorld().getName();
-		x = player.getLocation().getX();
-		y = player.getLocation().getY();
-		z = player.getLocation().getZ();
-		pitch = player.getLocation().getPitch();
-		yaw = player.getLocation().getYaw();
+		if (player != null) {
+			id = newid;
+			owner = player.getName();
+			title = newtitle;
+			world = player.getLocation().getWorld().getName();
+			x = player.getLocation().getX();
+			y = player.getLocation().getY();
+			z = player.getLocation().getZ();
+			pitch = player.getLocation().getPitch();
+			yaw = player.getLocation().getYaw();
+		} else { 
+			id = newid;
+			owner = "(Console)";
+			title = newtitle;
+			world = "";
+			x = 64d;
+			y = 64d;
+			z = 64d;
+			pitch = 0f;
+			yaw = 0f;
+		}
 		Save();
 	}
 
@@ -105,24 +117,36 @@ public class PetitionObject {
 	
 	
 	public void Assign(Player player, String name) {
-		log.add("Assigned to " + name + " by " + player.getName());
+		String moderator = "(Console)";
+		if (player != null) {
+			moderator = player.getName();
+		}
+		log.add("Assigned to " + name + " by " + moderator);
 		assignee = name;
 		Save();
 	}
 	
 	
 	public void Unassign(Player player) {
-		log.add("Unassigned by " + player.getName());
+		String moderator = "(Console)";
+		if (player != null) {
+			moderator = player.getName();
+		}
+		log.add("Unassigned by " + moderator);
 		assignee = "*";
 		Save();
 	}
 	
 	
 	public void Close(Player player, String message) {
+		String moderator = "(Console)";
+		if (player != null) {
+			moderator = player.getName();
+		}
 		if (message.equals("")) {
-			log.add("Closed by " + player.getName());
+			log.add("Closed by " + moderator);
 		} else {
-			log.add("Closed by " + player.getName() + ": " + message);
+			log.add("Closed by " + moderator + ": " + message);
 		}
 		Save();
 		File oldFile = new File(path + "/" + id + ".ticket");
@@ -131,10 +155,14 @@ public class PetitionObject {
 	
 	
 	public void Comment(Player player, String message) {
+		String moderator = "(Console)";
+		if (player != null) {
+			moderator = player.getName();
+		}
 		if (message.equals("")) {
 			return;
 		} else {
-			log.add( player.getName() + ": " + message);
+			log.add( moderator + ": " + message);
 		}
 		Save();
 	}
@@ -158,6 +186,12 @@ public class PetitionObject {
 	}
 	
 	
+	public Boolean ownedBy(Player player) {
+		if (player == null) {
+			return false;
+		}
+		return (Owner().equalsIgnoreCase(player.getName()));
+	}
 	
 	
 	public String Title() {
@@ -214,6 +248,7 @@ public class PetitionObject {
 		// Use the first world if we can't find the right one
 		return new Location(normal, x, y, z, yaw, pitch);
 	}
+
 
 }
 

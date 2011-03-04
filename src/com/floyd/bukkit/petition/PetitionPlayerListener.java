@@ -37,7 +37,7 @@ public class PetitionPlayerListener extends PlayerListener {
         
         // Play back messages stored in this player's maildir (if any)
         String[] messages = plugin.getMessages(player);
-        if (messages != null) {
+        if (messages.length > 0) {
         	for (String message : messages) {
         		player.sendMessage(message);
         	}

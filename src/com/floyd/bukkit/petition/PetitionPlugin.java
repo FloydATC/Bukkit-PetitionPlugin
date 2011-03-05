@@ -430,10 +430,11 @@ public class PetitionPlugin extends JavaPlugin {
 		String[] filenames = dir.list();
 		// Sort the filenames in numerical order
 		// OMG there _has_ to be a more efficient way to do this...!
-		Comparator numerical = new Comparator<String>() {
+		Comparator<String> numerical = new Comparator<String>() {
 			public int compare(final String o1, final String o2) {
-				String[] parts1 = o1.split(".");
-				String[] parts2 = o2.split(".");
+				// logger.info("Comparing " + o1 + " to " + o2);
+				String[] parts1 = o1.split("\\.");
+				String[] parts2 = o2.split("\\.");
 				Integer int1 = 0;
 				try {
 					int1 = Integer.parseInt(parts1[0]);
@@ -446,6 +447,7 @@ public class PetitionPlugin extends JavaPlugin {
 				}
 				catch (Exception e) {
 				}
+				// logger.info("Stripped values are " + int1 + " and " + int2);
 				if (int1 < int2) { return -1; }
 				if (int1 > int2) { return  1; }
 				return 0;

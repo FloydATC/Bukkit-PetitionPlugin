@@ -795,7 +795,7 @@ public class PetitionPlugin extends JavaPlugin {
     }
     
     public String[] getMessages(Player player) {
-    	String[] messages = null;
+    	String[] messages = new String[0];
     	String name = player.getName().toLowerCase();
     	String pname = baseDir + "/" + mailDir + "/" + name + "/inbox";
 		File dir = new File(pname);

@@ -124,6 +124,11 @@ public class PetitionPlugin extends JavaPlugin {
 	        			performClose(player, args);
 	        			return true;
 	        		}
+	        		// Reopen
+	        		if (args[0].equalsIgnoreCase("reopen")) {
+	        			performReopen(player, args);
+	        			return true;
+	        		}
 	        		// Comment
 	        		if (args[0].equalsIgnoreCase("comment") || args[0].equalsIgnoreCase("log")) {
 	        			performComment(player, args);
@@ -164,7 +169,7 @@ public class PetitionPlugin extends JavaPlugin {
 		try {
     		getLock(id, player);
     		PetitionObject petition = new PetitionObject(id);
-    		if (petition.isValid()) {
+    		if (petition.isValid() && (petition.isOpen() || moderator)) {
     			if (canWarpTo(player, petition)) {
     				respond(player, "[Pe] §7" + petition.Header(getServer()) );
     				respond(player, "[Pe] §7Teleporting you to where the " + settings.get("single").toLowerCase() + " was opened" );
@@ -232,7 +237,7 @@ public class PetitionPlugin extends JavaPlugin {
 		try {
     		getLock(id, player);
     		PetitionObject petition = new PetitionObject(id);
-    		if (petition.isValid()) {
+    		if (petition.isValid() && petition.isOpen()) {
     			if (petition.ownedBy(player) || moderator) {
 	        		String message = "";
 	        		Integer index = 2;
@@ -276,7 +281,7 @@ public class PetitionPlugin extends JavaPlugin {
 		try {
     		getLock(id, player);
     		PetitionObject petition = new PetitionObject(id);
-    		if (petition.isValid()) {
+    		if (petition.isValid() && petition.isOpen()) {
     			if (petition.ownedBy(player) || moderator) {
 	        		String message = "";
 	        		Integer index = 2;
@@ -307,6 +312,50 @@ public class PetitionPlugin extends JavaPlugin {
 
     }
 
+    private void performReopen(Player player, String[] args) {
+		Integer id = Integer.valueOf(args[1]);
+    	Boolean moderator = false;
+    	if (player == null || Permissions.Security.permission(player, "petition.moderate")) {
+    		moderator = true;
+    	}
+    	String name = "(Console)";
+    	if (player != null) {
+    		name = player.getName();
+    	}
+		try {
+    		getLock(id, player);
+    		PetitionObject petition = new PetitionObject(id);
+    		if (petition.isValid() && petition.isClosed()) {
+    			if (moderator) {
+	        		String message = "";
+	        		Integer index = 2;
+	        		while (index < args.length) {
+	        			message = message.concat(" " + args[index]);
+	        			index++;
+	        		}
+	        		if (message.length() > 0) {
+	        			message = message.substring(1);
+	        		}
+	        		// Notify
+	        		notifyNamedPlayer(petition.Owner(), "[Pe] §7Your " + settings.get("single").toLowerCase() + " §6#" + id + "§7 was reopened. " + message );
+					notifyNamedPlayer(petition.Assignee(), "[Pe] §7" + settings.get("single") + " §6#" + id + "§7 was reopened by " + name + ".");
+					String[] except = { petition.Owner(), petition.Assignee() };
+	        		notifyModerators("[Pe] §7" + settings.get("single") + " §6#" + id + "§7 was reopened. " + message, except );
+	        		petition.Reopen(player, message);
+					logger.info(name + " reopened petition " + id + ". " + message);
+    			} else {
+    				logger.info("[Pe] Access to reopen #" + id + " denied for " + name);
+    			}
+    		} else {
+    			respond(player, "§4[Pe] No closed " + settings.get("single").toLowerCase() + " #" + args[1] + " found." );
+    		}
+		}
+		finally {
+			releaseLock(id, player);
+		}
+
+    }
+
     private void performUnassign(Player player, String[] args) {
 		Integer id = Integer.valueOf(args[1]);
     	Boolean moderator = false;
@@ -319,11 +368,13 @@ public class PetitionPlugin extends JavaPlugin {
     	}
     	if (moderator == false) {
     		logger.info("[Pe] Access to unassign #" + id + " denied for " + name);
+    		respond(player, "§4[Pe] Only moderators may unassign "+settings.get("plural"));
+    		return;
     	}
 		try {
     		getLock(id, player);
     		PetitionObject petition = new PetitionObject(id);
-    		if (petition.isValid()) {
+    		if (petition.isValid() && petition.isOpen()) {
     			petition.Unassign(player);
         		// Notify
     			if (Boolean.parseBoolean(settings.get("notify-owner-on-unassign"))) {
@@ -354,11 +405,13 @@ public class PetitionPlugin extends JavaPlugin {
     	}
     	if (moderator == false) {
     		logger.info("[Pe] Access to assign #" + id + " denied for " + name);
+    		respond(player, "§4[Pe] Only moderators may assign "+settings.get("plural"));
+    		return;
     	}
 		try {
     		getLock(id, player);
     		PetitionObject petition = new PetitionObject(id);
-    		if (petition.isValid()) {
+    		if (petition.isValid() && petition.isOpen()) {
     			if (args.length == 3) {
     				// Assign to named player
     				petition.Assign(player, args[2]);
@@ -418,15 +471,54 @@ public class PetitionPlugin extends JavaPlugin {
 		Integer count = 0;
 		Integer showing = 0;
 		Integer limit = 10;
-		if (args.length == 2) {
-			limit = Integer.valueOf(args[1]);
+		Boolean include_offline = true;
+		Boolean include_online = true;
+		Boolean use_archive = false;
+		Boolean sort_reverse = false;
+		Boolean ignore_assigned = false;
+		Pattern pattern = null;
+		String filter = "";
+		if (args.length >= 2) {
+			for (Integer index = 1; index < args.length; index++) {
+				if (args[index].equalsIgnoreCase("closed")) {
+					use_archive = true;
+					continue;
+				}
+				if (args[index].equalsIgnoreCase("newest")) {
+					sort_reverse = true;
+					continue;
+				}
+				if (args[index].equalsIgnoreCase("unassigned")) {
+					ignore_assigned = true;
+					continue;
+				}
+				if (args[index].equalsIgnoreCase("online")) {
+					include_offline = false;
+					continue;
+				}
+				if (args[index].equalsIgnoreCase("offline")) {
+					include_online = false;
+					continue;
+				}
+				if (args[index].matches("^\\d+$")) {
+					limit = Integer.valueOf(args[index]);
+					continue;
+				}
+				filter = args[index];
+				pattern = Pattern.compile(filter, Pattern.CASE_INSENSITIVE);
+			}
 		}
     	Boolean moderator = false;
     	if (player == null || Permissions.Security.permission(player, "petition.moderate")) {
     		moderator = true;
     	}
 
-		File dir = new File("plugins/PetitionPlugin");
+    	File dir;
+    	if (use_archive == true) {
+    		dir = new File(baseDir + "/" + archiveDir);
+    	} else {
+    		dir = new File(baseDir);
+    	}
 		String[] filenames = dir.list();
 		// Sort the filenames in numerical order
 		// OMG there _has_ to be a more efficient way to do this...!
@@ -449,11 +541,14 @@ public class PetitionPlugin extends JavaPlugin {
 				}
 				// logger.info("Stripped values are " + int1 + " and " + int2);
 				if (int1 < int2) { return -1; }
-				if (int1 > int2) { return  1; }
+				if (int1 > int2) { return 1; }
 				return 0;
 			}
 		};
 		Arrays.sort(filenames, numerical);
+		if (sort_reverse) {
+			filenames = reverseOrder(filenames);
+		}
 		
     	if (filenames == null) {
 		    // Either dir does not exist or is not a directory
@@ -466,11 +561,30 @@ public class PetitionPlugin extends JavaPlugin {
                 		getLock(id, player);
     					PetitionObject petition = new PetitionObject(id);
     					if (petition.isValid() && (petition.ownedBy(player) || moderator) ) {
-    						if (count < limit) {
-    							respond(player, "[Pe] " + petition.Header(getServer()) );
-    							showing++;
+    						Boolean ignore = false;
+    						Player p = getServer().getPlayer(petition.Owner());
+    						if (p == null && include_offline == false) {
+    							ignore = true;
     						}
-    						count++;
+    						if (p != null && include_online == false) {
+    							ignore = true;
+    						}
+    						if (pattern != null) {
+    							Matcher matcher = pattern.matcher(petition.Header(getServer()));
+    							if (!matcher.find()) {
+    								ignore = true;
+    							}
+    						}
+    						if (!petition.Assignee().matches("\\*") && ignore_assigned == true) {
+    							ignore = true;
+    						}
+    						if (ignore == false) {
+	    						if (count < limit) {
+	    							respond(player, "[Pe] " + petition.Header(getServer()) );
+	    							showing++;
+	    						}
+	    						count++;
+    						}
     					}
             		}
             		finally {
@@ -479,7 +593,7 @@ public class PetitionPlugin extends JavaPlugin {
 				}
 			}
 		}
-    	respond(player, "[Pe] §7Open " + settings.get("plural").toLowerCase() + ": " + count + " (Showing " + showing + ")" );
+    	respond(player, "[Pe] §7"+(use_archive?"Closed":"Open")+" " + settings.get("plural").toLowerCase() + (pattern==null?"":" matching "+filter) + ": " + count + " (Showing " + showing + ")" );
     }
     
     private void performHelp(Player player) {
@@ -493,7 +607,7 @@ public class PetitionPlugin extends JavaPlugin {
     	respond(player, "[Pe] §7/" + cmd + " open|create|new <Message>");
     	respond(player, "[Pe] §7/" + cmd + " comment|log <#> <Message>");
     	respond(player, "[Pe] §7/" + cmd + " close <#> [<Message>]");
-    	respond(player, "[Pe] §7/" + cmd + " list [<count>]");
+    	respond(player, "[Pe] §7/" + cmd + " list [online|offline|newest|closed|unassigned] [<count>|<pattern>]");
     	respond(player, "[Pe] §7/" + cmd + " view <#>");
     	if (canWarpAtAll(player)) {
     		respond(player, "[Pe] §7/" + cmd + " warp|goto <#>");
@@ -501,6 +615,7 @@ public class PetitionPlugin extends JavaPlugin {
         if (moderator) {
         	respond(player, "[Pe] §7/" + cmd + " assign <#> [<Operator>]");
         	respond(player, "[Pe] §7/" + cmd + " unassign <#>");
+        	respond(player, "[Pe] §7/" + cmd + " reopen <#> [<Message>]");
         }
     }
     
@@ -901,5 +1016,14 @@ public class PetitionPlugin extends JavaPlugin {
     	return false;
     }
 
+    private String[] reverseOrder(String[] list) {
+    	String[] newlist = new String[list.length];
+    	Integer i = list.length-1;
+    	for (String item : list) {
+    		newlist[i] = item;
+    		i--;
+    	}
+    	return newlist;
+    }
 }
 

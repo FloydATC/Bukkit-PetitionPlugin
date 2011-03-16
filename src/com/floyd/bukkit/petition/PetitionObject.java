@@ -23,6 +23,7 @@ public class PetitionObject {
 	Float yaw = 0.0f;
 	String assignee = "*";
 	ArrayList<String> log = new ArrayList<String>();
+	Boolean closed = false;
 		
 	// Create a new petition
 	public PetitionObject( Integer newid, Player player, String newtitle ) {
@@ -36,6 +37,7 @@ public class PetitionObject {
 			z = player.getLocation().getZ();
 			pitch = player.getLocation().getPitch();
 			yaw = player.getLocation().getYaw();
+			closed = false;
 		} else { 
 			id = newid;
 			owner = "(Console)";
@@ -46,6 +48,7 @@ public class PetitionObject {
 			z = 64d;
 			pitch = 0f;
 			yaw = 0f;
+			closed = false;
 		}
 		Save();
 	}
@@ -53,9 +56,15 @@ public class PetitionObject {
 	
 	// Load an existing petition
 	public PetitionObject( Integer getid ) {
-		String fname = path + "/" + String.valueOf(getid) + ".ticket";
-		// TODO: Implement locking to prevent simultaneous updates
-		// ...
+		// Look in the archive first
+		String fname = archive + "/" + String.valueOf(getid) + ".ticket";
+		closed = true;
+		File f = new File(fname);
+		// Not found? Then check the regular ones
+    	if (!f.exists()) {
+    		fname = path + "/" + String.valueOf(getid) + ".ticket";
+    		closed = false;
+    	}
     	try {
         	BufferedReader input =  new BufferedReader(new FileReader(fname));
     		String line = null;
@@ -88,6 +97,9 @@ public class PetitionObject {
 	// Save a new or updated petition
 	public void Save() {
 		String fname = path + "/" + String.valueOf(id) + ".ticket";
+		if (closed == true) {
+			fname = path + "/archive/" + String.valueOf(id) + ".ticket";
+		}
    		BufferedWriter output;
    		if (isValid() == false) {
    		  return;
@@ -153,6 +165,20 @@ public class PetitionObject {
 		oldFile.renameTo(new File(archive + "/" + id + ".ticket"));
 	}
 	
+	public void Reopen(Player player, String message) {
+		String moderator = "(Console)";
+		if (player != null) {
+			moderator = player.getName();
+		}
+		if (message.equals("")) {
+			log.add("Reopened by " + moderator);
+		} else {
+			log.add("Reopened by " + moderator + ": " + message);
+		}
+		Save();
+		File oldFile = new File(archive + "/" + id + ".ticket");
+		oldFile.renameTo(new File(path + "/" + id + ".ticket"));
+	}
 	
 	public void Comment(Player player, String message) {
 		String moderator = "(Console)";
@@ -173,6 +199,13 @@ public class PetitionObject {
 		return (id != 0);
 	}
 	
+	public Boolean isOpen() {
+		return !closed;
+	}
+	
+	public Boolean isClosed() {
+		return closed;
+	}
 	
 	public String Owner() {
 		return owner;

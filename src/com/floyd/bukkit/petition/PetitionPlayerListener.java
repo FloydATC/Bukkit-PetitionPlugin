@@ -32,7 +32,7 @@ public class PetitionPlayerListener extends PlayerListener {
 
     //Insert Player related code here
     @Override
-    public void onPlayerJoin(PlayerEvent event) {
+    public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         
         // Play back messages stored in this player's maildir (if any)

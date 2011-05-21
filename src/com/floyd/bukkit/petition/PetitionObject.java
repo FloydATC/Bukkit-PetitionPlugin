@@ -7,6 +7,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.Server;
+import java.sql.*;
 
 public class PetitionObject {
 	String path = "plugins/PetitionPlugin";
@@ -24,9 +25,11 @@ public class PetitionObject {
 	String assignee = "*";
 	ArrayList<String> log = new ArrayList<String>();
 	Boolean closed = false;
+	Connection dbh = null;
 		
 	// Create a new petition
-	public PetitionObject( Integer newid, Player player, String newtitle ) {
+	public PetitionObject( Integer newid, Player player, String newtitle, Connection dbh ) {
+		this.dbh = dbh;
 		if (player != null) {
 			id = newid;
 			owner = player.getName();
@@ -55,7 +58,20 @@ public class PetitionObject {
 
 	
 	// Load an existing petition
-	public PetitionObject( Integer getid ) {
+	public PetitionObject( Integer getid, Connection dbh ) {
+		this.dbh = dbh;
+		if (dbh == null) {
+			LoadFile(getid);
+		} else {
+			LoadDb(getid);
+		}
+	}
+
+	private void LoadDb(Integer getid) {
+		
+	}
+	
+	private void LoadFile(Integer getid) {
 		// Look in the archive first
 		String fname = archive + "/" + String.valueOf(getid) + ".ticket";
 		closed = true;
@@ -92,10 +108,17 @@ public class PetitionObject {
     		e.printStackTrace();
     	}
 	}
-
 	
 	// Save a new or updated petition
 	public void Save() {
+		SaveFile();
+	}
+
+	private void SaveDb() {
+		
+	}
+
+	private void SaveFile() {
 		String fname = path + "/" + String.valueOf(id) + ".ticket";
 		if (closed == true) {
 			fname = path + "/archive/" + String.valueOf(id) + ".ticket";

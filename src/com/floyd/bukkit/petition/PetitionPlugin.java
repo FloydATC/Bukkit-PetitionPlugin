@@ -102,7 +102,6 @@ public class PetitionPlugin extends JavaPlugin {
         	player = (Player)sender;
         }
         Connection dbh = null;
-        if (dbpool != null) { dbh = dbpool.getConnection(); }
         
         if (cmdname.equalsIgnoreCase("pe") || cmdname.equalsIgnoreCase("petition")) {
         	if (player == null || Permissions.Security.permission(player, "petition")) {
@@ -114,49 +113,67 @@ public class PetitionPlugin extends JavaPlugin {
 	        	if (args.length >= 1) {
 	        		// List
 	        		if (args[0].equalsIgnoreCase("list")) {
+	        	        if (dbpool != null) { dbh = dbpool.getConnection(); }
 	        			performList(player, args, dbh);
+	        	        if (dbpool != null) { dbpool.releaseConnection(dbh); }
 	        			return true;
 	        		}
 	        	}
 	        	if (args.length >= 2) {
 	        		// View
 	        		if (args[0].equalsIgnoreCase("view")) {
+	        	        if (dbpool != null) { dbh = dbpool.getConnection(); }
 	        			performView(player, args, dbh);
+	        	        if (dbpool != null) { dbpool.releaseConnection(dbh); }
 	        			return true;
 	        		}
 	        		// Assign
 	        		if (args[0].equalsIgnoreCase("assign")) {
+	        	        if (dbpool != null) { dbh = dbpool.getConnection(); }
 	        			performAssign(player, args, dbh);
+	        	        if (dbpool != null) { dbpool.releaseConnection(dbh); }
 	        			return true;
 	        		}
 	        		// Unassign
 	        		if (args[0].equalsIgnoreCase("unassign")) {
+	        	        if (dbpool != null) { dbh = dbpool.getConnection(); }
 	        			performAssign(player, args, dbh);
+	        	        if (dbpool != null) { dbpool.releaseConnection(dbh); }
 	        			return true;
 	        		}
 	        		// Close
 	        		if (args[0].equalsIgnoreCase("close")) {
+	        	        if (dbpool != null) { dbh = dbpool.getConnection(); }
 	        			performClose(player, args, dbh);
+	        	        if (dbpool != null) { dbpool.releaseConnection(dbh); }
 	        			return true;
 	        		}
 	        		// Reopen
 	        		if (args[0].equalsIgnoreCase("reopen")) {
+	        	        if (dbpool != null) { dbh = dbpool.getConnection(); }
 	        			performReopen(player, args, dbh);
+	        	        if (dbpool != null) { dbpool.releaseConnection(dbh); }
 	        			return true;
 	        		}
 	        		// Comment
 	        		if (args[0].equalsIgnoreCase("comment") || args[0].equalsIgnoreCase("log")) {
+	        	        if (dbpool != null) { dbh = dbpool.getConnection(); }
 	        			performComment(player, args, dbh);
+	        	        if (dbpool != null) { dbpool.releaseConnection(dbh); }
 	        			return true;
 	        		}
 	        		// Open
 	        		if (args[0].equalsIgnoreCase("open") || args[0].equalsIgnoreCase("new") || args[0].equalsIgnoreCase("create")) {
+	        	        if (dbpool != null) { dbh = dbpool.getConnection(); }
 	        			performOpen(player, args, dbh);
+	        	        if (dbpool != null) { dbpool.releaseConnection(dbh); }
 	        			return true;
 	        		}
 	        		// Warp
 	        		if (args[0].equalsIgnoreCase("warp") || args[0].equalsIgnoreCase("goto")) {
+	        	        if (dbpool != null) { dbh = dbpool.getConnection(); }
 	        			performWarp(player, args, dbh);
+	        	        if (dbpool != null) { dbpool.releaseConnection(dbh); }
 	        			return true;
 	        		}
 	        	}
